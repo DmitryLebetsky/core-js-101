@@ -20,8 +20,14 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  return {
+    width,
+    height,
+    getArea() {
+      return this.width * this.height;
+    },
+  };
 }
 
 
@@ -35,8 +41,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +57,10 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const obj = JSON.parse(json);
+  Object.setPrototypeOf(obj, proto);
+  return obj;
 }
 
 
@@ -111,32 +119,102 @@ function fromJSON(/* proto, json */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  result: '',
+  isSelectorHaveElement: false,
+  isSelectorHaveId: false,
+  isSelectorHavePseudoElement: false,
+  rightOrder: ['element', 'id', 'class', 'attribute', 'pseudo-class', 'pseudo-element'],
+  currentOrder: [],
+  isOrderRight(currentSelector) {
+    const patternArr = this.rightOrder.slice(this.rightOrder.indexOf(currentSelector) + 1);
+    if (this.currentOrder.some((sel) => patternArr.includes(sel))) {
+      return false;
+    }
+    return true;
+  },
+  element(value) {
+    if (!this.isOrderRight('element')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    if (this.isSelectorHaveElement) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    const copyObj = { ...this };
+    copyObj.result += value;
+    copyObj.isSelectorHaveElement = true;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'element'];
+    return copyObj;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    if (!this.isOrderRight('id')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    if (this.isSelectorHaveId) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    const copyObj = { ...this };
+    copyObj.result += `#${value}`;
+    copyObj.isSelectorHaveId = true;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'id'];
+    return copyObj;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    if (!this.isOrderRight('class')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const copyObj = { ...this };
+    copyObj.result += `.${value}`;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'class'];
+    return copyObj;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    if (!this.isOrderRight('attribute')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const copyObj = { ...this };
+    copyObj.result += `[${value}]`;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'attribute'];
+    return copyObj;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    if (!this.isOrderRight('pseudo-class')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    const copyObj = { ...this };
+    copyObj.result += `:${value}`;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'pseudo-class'];
+    return copyObj;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    if (!this.isOrderRight('pseudo-element')) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    if (this.isSelectorHavePseudoElement) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    const copyObj = { ...this };
+    copyObj.result += `::${value}`;
+    copyObj.isSelectorHavePseudoElement = true;
+    copyObj.currentOrder = [...copyObj.currentOrder, 'pseudo-element'];
+    return copyObj;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const copyObj = { ...this };
+    copyObj.result = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return copyObj;
+  },
+
+  stringify() {
+    const shouldReturn = this.result.slice();
+    this.result = '';
+    this.currentOrder = [];
+    return shouldReturn;
   },
 };
 
